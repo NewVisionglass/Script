@@ -10,6 +10,29 @@
     mv $1.bak $1
 }
 
+# 检查端口是否在合法范围内
+检查端口() {
+    local port=$1
+    if ! [[ $port =~ ^[0-9]+$ ]]; then
+        echo "端口号必须为数字。"
+        exit 1
+    fi
+
+    if ((port < 1 || port > 65535)); then
+        echo "端口号必须在1到65535之间。"
+        exit 1
+    fi
+}
+
+# 检查公钥格式
+检查公钥格式() {
+    local public_key=$1
+    if ! echo "$public_key" | grep -q "ssh-rsa"; then
+        echo "公钥格式不正确。"
+        exit 1
+    fi
+}
+
 # 生成SSH密钥对
 生成SSH密钥() {
     read -p "是否要生成新的SSH密钥对？ (y/n): " choice
@@ -30,9 +53,11 @@ while getopts ":p:k:" opt; do
     case ${opt} in
         p )
             new_port=$OPTARG
+            检查端口 $new_port
             ;;
         k )
             public_key=$OPTARG
+            检查公钥格式 "$public_key"
             ;;
         \? )
             echo "无效的参数: -$OPTARG" 1>&2
