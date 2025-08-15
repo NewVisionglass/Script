@@ -24,8 +24,28 @@
 }
 
 # 主要脚本
-read -p "请输入新的SSH端口号: " new_port
-read -p "请输入新的公钥: " public_key
+
+# 外部参数处理
+while getopts ":p:k:" opt; do
+    case ${opt} in
+        p )
+            new_port=$OPTARG
+            ;;
+        k )
+            public_key=$OPTARG
+            ;;
+        \? )
+            echo "无效的参数: -$OPTARG" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+# 检查参数是否提供
+if [ -z "$new_port" ] || [ -z "$public_key" ]; then
+    echo "请提供新的SSH端口号 (-p) 和公钥 (-k) 参数。"
+    exit 1
+fi
 
 # 备份SSH配置
 备份文件 /etc/ssh/sshd_config
@@ -33,7 +53,18 @@ read -p "请输入新的公钥: " public_key
 # 更新SSH配置
 sed -i "s/Port [0-9]*/Port $new_port/" /etc/ssh/sshd_config
 sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/" /etc/ssh/sshd_config
-echo "$public_key" >> ~/.ssh/authorized_keys
+
+# 检查是否存在公钥
+if [ -f ~/.ssh/authorized_keys ]; then
+    read -p "已存在公钥，是否要替换？(输入 '替换' 替换现有公钥): " replace_choice
+    if [ "$replace_choice" == "替换" ]; then
+        echo "$public_key" > ~/.ssh/authorized_keys
+    else
+        echo "$public_key" >> ~/.ssh/authorized_keys
+    fi
+else
+    echo "$public_key" > ~/.ssh/authorized_keys
+fi
 
 # 重新加载SSH配置
 systemctl reload sshd
@@ -57,7 +88,7 @@ else
     firewall-cmd --reload
 fi
 
-# 如果未提供公钥，则生成SSH密钥对
-if [ -z "$public_key" ]; then
+# 如果公钥错误，则生成SSH密钥对
+if [ $? -ne 0 ]; then
     生成SSH密钥
 fi
