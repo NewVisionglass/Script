@@ -27,7 +27,7 @@
 # 检查公钥格式
 检查公钥格式() {
     local public_key=$1
-    if ! echo "$public_key" | grep -q "ssh-rsa"; then
+    if ! echo "$public_key" | grep -q "ssh-rsa\|ecdsa-sha2-nistp\|ssh-ed25519"; then
         echo "公钥格式不正确。"
         exit 1
     fi
@@ -35,15 +35,12 @@
 
 # 生成SSH密钥对
 生成SSH密钥() {
-    read -p "是否要生成新的SSH密钥对？ (y/n): " choice
-    if [ "$choice" == "y" ]; then
-        read -p "请选择要使用的加密协议 (默认为 rsa): " key_type
-        key_type=${key_type:-rsa}
-        ssh-keygen -t $key_type -b 4096 -C "your_email@example.com"
-        mv ~/.ssh/id_rsa /root/id_rsa
-        chmod 600 /root/id_rsa
-        cat /root/id_rsa
-    fi
+    read -p "请选择要使用的加密协议 (默认为 ed25519): " key_type
+    key_type=${key_type:-ed25519}
+    ssh-keygen -t $key_type -C "your_email@example.com"
+    mv ~/.ssh/id_$key_type /root/id_$key_type
+    chmod 600 /root/id_$key_type
+    cat /root/id_$key_type
 }
 
 # 主要脚本
